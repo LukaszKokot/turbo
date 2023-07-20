@@ -2,6 +2,7 @@
 mod execution;
 mod global_hash;
 mod scm;
+mod spaces;
 mod task;
 
 use global_hash::GlobalHashSummary;
