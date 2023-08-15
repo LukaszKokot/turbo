@@ -9,14 +9,17 @@ use global_hash::GlobalHashSummary;
 use serde::{Deserialize, Serialize};
 use svix_ksuid::Ksuid;
 use thiserror::Error;
-use turbopath::{AbsoluteSystemPathBuf, AnchoredSystemPathBuf};
+use turbopath::{
+    AbsoluteSystemPath, AbsoluteSystemPathBuf, AnchoredSystemPath, AnchoredSystemPathBuf,
+};
 use turborepo_api_client::APIClient;
+use turborepo_ci::Vendor;
 use turborepo_env::EnvironmentVariableMap;
 
 use crate::{
     cli::EnvMode,
     opts::RunOpts,
-    run::summary::{execution::ExecutionSummary, task::TaskSummary},
+    run::summary::{execution::ExecutionSummary, scm::SCMState, task::TaskSummary},
 };
 
 #[derive(Debug, Error)]
@@ -33,12 +36,21 @@ enum RunType {
     DryJson,
 }
 
+fn get_user(env_vars: &EnvironmentVariableMap) -> Option<String> {
+    if turborepo_ci::is_ci() {
+        return Vendor::get_info()
+            .and_then(|vendor| vendor.username_env_var)
+            .and_then(|username_env_var| env_vars.get(username_env_var).cloned());
+    }
+
+    None
+}
+
 // Wrapper around the serializable RunSummary, with some extra information
 // about the Run and references to other things that we need.
-struct Meta {
-    run_summary: RunSummary,
-    repo_root: AbsoluteSystemPathBuf,
-    repo_path: AbsoluteSystemPathBuf,
+struct Meta<'a> {
+    run_summary: RunSummary<'a>,
+    repo_root: &'a AbsoluteSystemPath,
     single_package: bool,
     should_save: bool,
     run_type: RunType,
@@ -47,7 +59,7 @@ struct Meta {
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct RunSummary {
+struct RunSummary<'a> {
     id: Ksuid,
     version: String,
     turbo_version: String,
@@ -56,17 +68,17 @@ struct RunSummary {
     packages: Vec<String>,
     env_mode: EnvMode,
     framework_inference: bool,
-    execution_summary: Option<ExecutionSummary>,
+    execution_summary: Option<ExecutionSummary<'a>>,
     tasks: Vec<TaskSummary>,
-    user: String,
-    scm: ScmState,
+    user: Option<String>,
+    scm: SCMState,
 }
 
 impl Meta {
     pub fn new_run_summary(
         start_at: chrono::NaiveDateTime,
-        repo_root: AbsoluteSystemPathBuf,
-        repo_path: AnchoredSystemPathBuf,
+        repo_root: &AbsoluteSystemPath,
+        package_inference_root: &AnchoredSystemPath,
         turbo_version: &'static str,
         api_client: APIClient,
         run_opts: RunOpts,
@@ -78,7 +90,7 @@ impl Meta {
     ) -> Meta {
         let single_package = run_opts.single_package;
         let profile = run_opts.profile;
-        let should_save = run_opts.summarize;
+        let should_save = run_opts.summarize.flatten().is_some_and(|s| s);
         let space_id = &run_opts.experimental_space_id;
 
         let run_type = if run_opts.dry_run {
@@ -90,6 +102,32 @@ impl Meta {
         } else {
             RunType::Real
         };
+
+        let execution_summary =
+            ExecutionSummary::new(&synthesized_command, package_inference_root, start_at);
+
+        Meta {
+            run_summary: RunSummary {
+                id: Ksuid::generate(),
+                version: RUN_SUMMARY_SCHEMA_VERSION.to_string(),
+                execution_summary: Some(execution_summary),
+                turbo_version: turbo_version.to_string(),
+                packages: packages.to_vec(),
+                env_mode: global_env_mode,
+                framework_inference: run_opts.framework_inference,
+                tasks: vec![],
+                global_hash_summary,
+                scm: SCMState::get(&env_at_execution_start, repo_root),
+                user: get_user(&env_at_execution_start),
+                monorepo: !single_package,
+            },
+            run_type,
+            repo_root,
+            single_package,
+            should_save,
+
+            synthesized_command,
+        }
     }
 
     fn normalize(&mut self) {
