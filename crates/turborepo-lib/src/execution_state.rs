@@ -46,13 +46,17 @@ impl<'a> TryFrom<&'a CommandBase> for ExecutionState<'a> {
         let run = Run::new((*base).clone());
 
         let global_hash;
+        let package_inputs_hashes;
         #[cfg(debug_assertions)]
         {
-            global_hash = Some(run.get_global_hash()?);
+            let result = run.get_global_hash()?;
+            global_hash = Some(result.0);
+            package_inputs_hashes = Some(result.1);
         }
         #[cfg(not(debug_assertions))]
         {
             global_hash = None;
+            package_inputs_hashes = None;
         }
 
         let root_package_json =
