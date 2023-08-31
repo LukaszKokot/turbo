@@ -1,8 +1,7 @@
-use std::{
-    fmt,
-    time::{Duration, Instant},
-};
+use std::fmt;
 
+use chrono::{DateTime, Duration, Local};
+use serde::{ser::SerializeStruct, Serialize};
 use tokio::sync::mpsc;
 
 use crate::run::task_id::TaskId;
@@ -13,10 +12,12 @@ type Message = Event;
 
 // Should *not* be exposed outside of run summary module
 /// The execution summary
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct ExecutionSummary {
     // this thread handles the state management
+    #[serde(skip)]
     state_thread: tokio::task::JoinHandle<SummaryState>,
+    #[serde(skip)]
     sender: mpsc::Sender<Message>,
 }
 
@@ -41,7 +42,7 @@ impl SummaryState {
 }
 
 /// A tracker constructed for each task and used to communicate task events back
-/// to the exeuction summary.
+/// to the execution summary.
 pub struct Tracker<T> {
     sender: mpsc::Sender<Message>,
     started_at: T,
@@ -50,7 +51,7 @@ pub struct Tracker<T> {
     task_id: TaskId<'static>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Serialize)]
 enum Event {
     Building,
     BuildFailed,
@@ -58,6 +59,7 @@ enum Event {
     Built,
 }
 
+#[derive(Debug, Serialize)]
 enum ExecutionState {
     Canceled,
     Built { exit_code: u32 },
@@ -65,10 +67,22 @@ enum ExecutionState {
     BuildFailed { exit_code: u32, err: String },
 }
 
+#[derive(Debug)]
 pub struct TaskExecutionSummary {
-    started_at: Instant,
-    ended_at: Instant,
+    started_at: DateTime<Local>,
+    ended_at: DateTime<Local>,
     state: ExecutionState,
+}
+
+impl Serialize for TaskExecutionSummary {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let mut state = serializer.serialize_struct("TaskExecutionSummary", 4)?;
+        state.serialize_field("startedAt", &self.started_at.timestamp_millis())?;
+        state.serialize_field("endedAt", &self.ended_at.timestamp_millis())?;
+        state.serialize_field("state", &self.state)?;
+
+        state.end()
+    }
 }
 
 impl TaskExecutionSummary {
@@ -82,7 +96,7 @@ impl TaskExecutionSummary {
     }
 
     pub fn duration(&self) -> Duration {
-        self.ended_at.duration_since(self.started_at)
+        self.ended_at.signed_duration_since(self.started_at)
     }
 }
 
@@ -129,11 +143,11 @@ impl ExecutionSummary {
 
 impl Tracker<()> {
     // Start the tracker
-    pub async fn start(self) -> Tracker<Instant> {
+    pub async fn start(self) -> Tracker<DateTime<Local>> {
         let Tracker {
             sender, task_id, ..
         } = self;
-        let started_at = Instant::now();
+        let started_at = Local::now();
         sender
             .send(Event::Building)
             .await
@@ -146,12 +160,12 @@ impl Tracker<()> {
     }
 }
 
-impl Tracker<Instant> {
+impl Tracker<chrono::DateTime<Local>> {
     pub fn cancel(self) -> TaskExecutionSummary {
         let Self { started_at, .. } = self;
         TaskExecutionSummary {
             started_at,
-            ended_at: Instant::now(),
+            ended_at: Local::now(),
             state: ExecutionState::Canceled,
         }
     }
@@ -166,7 +180,7 @@ impl Tracker<Instant> {
             .expect("summary state thread finished");
         TaskExecutionSummary {
             started_at,
-            ended_at: Instant::now(),
+            ended_at: Local::now(),
             state: ExecutionState::Cached,
         }
     }
@@ -181,7 +195,7 @@ impl Tracker<Instant> {
             .expect("summary state thread finished");
         TaskExecutionSummary {
             started_at,
-            ended_at: Instant::now(),
+            ended_at: Local::now(),
             state: ExecutionState::Built { exit_code },
         }
     }
@@ -200,7 +214,7 @@ impl Tracker<Instant> {
             .expect("summary state thread finished");
         TaskExecutionSummary {
             started_at,
-            ended_at: Instant::now(),
+            ended_at: Local::now(),
             state: ExecutionState::BuildFailed {
                 exit_code,
                 err: error.to_string(),
@@ -263,7 +277,7 @@ mod test {
     async fn test_timing() {
         let summary = ExecutionSummary::new();
         let tracker = summary.tracker(TaskId::new("foo", "build"));
-        let post_construction_time = Instant::now();
+        let post_construction_time = Local::now();
         let tracker = tracker.start().await;
         let sleep_duration = Duration::from_millis(5);
         tokio::time::sleep(sleep_duration).await;

@@ -1,12 +1,15 @@
+use serde::{Deserialize, Serialize};
 use turbopath::AbsoluteSystemPath;
 use turborepo_ci::Vendor;
 use turborepo_env::EnvironmentVariableMap;
-use turborepo_scm::{Git, SCM};
+use turborepo_scm::SCM;
 
+#[derive(Debug, Deserialize, Serialize)]
 enum SCMType {
     Git,
 }
 
+#[derive(Debug, Deserialize, Serialize)]
 pub(crate) struct SCMState {
     ty: SCMType,
     sha: Option<String>,
@@ -16,7 +19,7 @@ pub(crate) struct SCMState {
 impl SCMState {
     pub fn get(env_vars: &EnvironmentVariableMap, dir: &AbsoluteSystemPath) -> Self {
         let mut state = SCMState {
-            ty: ScmType::Git,
+            ty: SCMType::Git,
             sha: None,
             branch: None,
         };

@@ -7074,7 +7074,8 @@ dependencies = [
  "base-encode",
  "byteorder",
  "getrandom",
- "time 0.3.20",
+ "serde",
+ "time 0.3.26",
 ]
 
 [[package]]

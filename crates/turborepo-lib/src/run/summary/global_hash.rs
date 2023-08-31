@@ -1,10 +1,10 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use turbopath::RelativeUnixPathBuf;
 use turborepo_env::{DetailedMap, EnvironmentVariableMap, EnvironmentVariablePairs};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 // Contains the environment variable inputs for the global hash
 pub(crate) struct GlobalEnvConfiguration {
@@ -22,7 +22,7 @@ pub(crate) struct GlobalEnvVarSummary {
     pass_through: EnvironmentVariablePairs,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub(crate) struct GlobalHashSummary {
     global_cache_key: &'static str,
     global_file_hash_map: HashMap<RelativeUnixPathBuf, String>,

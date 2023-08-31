@@ -6,12 +6,10 @@ mod spaces;
 mod task;
 
 use global_hash::GlobalHashSummary;
-use serde::{Deserialize, Serialize};
-use svix_ksuid::Ksuid;
+use serde::Serialize;
+use svix_ksuid::{Ksuid, KsuidLike};
 use thiserror::Error;
-use turbopath::{
-    AbsoluteSystemPath, AbsoluteSystemPathBuf, AnchoredSystemPath, AnchoredSystemPathBuf,
-};
+use turbopath::{AbsoluteSystemPath, AbsoluteSystemPathBuf, AnchoredSystemPath};
 use turborepo_api_client::APIClient;
 use turborepo_ci::Vendor;
 use turborepo_env::EnvironmentVariableMap;
@@ -23,7 +21,12 @@ use crate::{
 };
 
 #[derive(Debug, Error)]
-enum Error {}
+enum Error {
+    #[error("Failed to write run summary {0}")]
+    IO(#[from] std::io::Error),
+    #[error("Failed to serialize run summary to JSON")]
+    Serde(#[from] serde_json::Error),
+}
 
 // NOTE: When changing this, please ensure that the server side is updated to
 // handle the new version on vercel.com this is required to ensure safe handling
@@ -57,7 +60,7 @@ struct Meta<'a> {
     synthesized_command: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
 struct RunSummary<'a> {
     id: Ksuid,
@@ -68,16 +71,16 @@ struct RunSummary<'a> {
     packages: Vec<String>,
     env_mode: EnvMode,
     framework_inference: bool,
-    execution_summary: Option<ExecutionSummary<'a>>,
-    tasks: Vec<TaskSummary>,
+    execution_summary: Option<ExecutionSummary>,
+    tasks: Vec<TaskSummary<'a>>,
     user: Option<String>,
     scm: SCMState,
 }
 
-impl Meta {
+impl<'a> Meta<'a> {
     pub fn new_run_summary(
         start_at: chrono::NaiveDateTime,
-        repo_root: &AbsoluteSystemPath,
+        repo_root: &'a AbsoluteSystemPath,
         package_inference_root: &AnchoredSystemPath,
         turbo_version: &'static str,
         api_client: APIClient,
@@ -87,7 +90,7 @@ impl Meta {
         env_at_execution_start: EnvironmentVariableMap,
         global_hash_summary: GlobalHashSummary,
         synthesized_command: String,
-    ) -> Meta {
+    ) -> Meta<'a> {
         let single_package = run_opts.single_package;
         let profile = run_opts.profile;
         let should_save = run_opts.summarize.flatten().is_some_and(|s| s);
@@ -103,12 +106,11 @@ impl Meta {
             RunType::Real
         };
 
-        let execution_summary =
-            ExecutionSummary::new(&synthesized_command, package_inference_root, start_at);
+        let execution_summary = ExecutionSummary::new();
 
         Meta {
             run_summary: RunSummary {
-                id: Ksuid::generate(),
+                id: Ksuid::new(None, None),
                 version: RUN_SUMMARY_SCHEMA_VERSION.to_string(),
                 execution_summary: Some(execution_summary),
                 turbo_version: turbo_version.to_string(),
@@ -146,10 +148,24 @@ impl Meta {
             }
         }
 
-        self.run_summary.tasks.sort_by(|a, b| a.cmp(&b.name));
+        self.run_summary
+            .tasks
+            .sort_by(|a, b| a.task_id.cmp(&b.task_id));
+    }
+
+    fn get_path(&self) -> AbsoluteSystemPathBuf {
+        let filename = format!("{}.json", self.run_summary.id);
+
+        self.repo_root
+            .join_components(&[".turbo", "runs", &filename])
     }
 
     fn save(&self) -> Result<(), Error> {
         let json = serde_json::to_string_pretty(&self.run_summary)?;
+
+        let summary_path = self.get_path();
+        summary_path.ensure_dir()?;
+
+        Ok(summary_path.create_with_contents(json)?)
     }
 }

@@ -1,13 +1,15 @@
 use std::collections::HashMap;
 
+use serde::Serialize;
 use turbopath::{AnchoredSystemPathBuf, RelativeUnixPathBuf};
 
 use crate::{
     cli::EnvMode,
-    run::{summary::execution::TaskExecutionSummary, task_id::strip_package_name},
+    run::{summary::execution::TaskExecutionSummary, task_id::TaskId},
     task_graph::TaskDefinition,
 };
 
+#[derive(Debug, Serialize)]
 struct TaskCacheSummary {
     local: bool,
     remote: bool,
@@ -17,22 +19,22 @@ struct TaskCacheSummary {
     time_saved: u32,
 }
 
-pub(crate) struct TaskSummary {
-    task_id: String,
-    task: String,
+#[derive(Debug, Serialize)]
+pub(crate) struct TaskSummary<'a> {
+    pub(crate) task_id: TaskId<'a>,
     package: Option<String>,
     hash: String,
     expanded_inputs: HashMap<RelativeUnixPathBuf, String>,
     external_deps_hash: String,
     cache_summary: TaskCacheSummary,
-    comamnd: String,
+    command: String,
     command_arguments: Vec<String>,
     outputs: Vec<String>,
     excluded_outputs: Vec<String>,
     log_file_relative_path: String,
     dir: Option<String>,
-    dependencies: Vec<String>,
-    dependents: Vec<String>,
+    dependencies: Vec<TaskId<'a>>,
+    dependents: Vec<TaskId<'a>>,
     resolved_task_definition: TaskDefinition,
     expanded_outputs: Vec<AnchoredSystemPathBuf>,
     framework: String,
@@ -42,11 +44,13 @@ pub(crate) struct TaskSummary {
     execution: TaskExecutionSummary,
 }
 
+#[derive(Debug, Serialize)]
 struct TaskEnvConfiguration {
     env: Vec<String>,
-    pass_through_Env: Vec<String>,
+    pass_through_env: Vec<String>,
 }
 
+#[derive(Debug, Serialize)]
 struct TaskEnvVarSummary {
     specified: TaskEnvConfiguration,
 
@@ -55,26 +59,17 @@ struct TaskEnvVarSummary {
     pass_through: Vec<String>,
 }
 
-impl TaskSummary {
+impl<'a> TaskSummary<'a> {
     pub fn clean_for_single_package(&mut self) {
-        let mut dependencies = Vec::with_capacity(self.dependencies.len());
-
-        for dependency in &self.dependencies {
-            dependencies.push(strip_package_name(dependency));
+        for dependency in &mut self.dependencies {
+            dependency.strip_package();
         }
 
-        let mut dependents = Vec::with_capacity(self.dependent.len());
-
-        for dependent in &self.dependents {
-            dependents.push(strip_package_name(dependent));
+        for dependent in &mut self.dependents {
+            dependent.strip_package()
         }
 
-        let task = strip_package_name(&self.task_id);
-
-        self.task_id = task.clone();
-        self.task = task;
-        self.dependencies = dependencies;
-        self.dependents = dependents;
+        self.task_id.strip_package();
         self.dir = None;
         self.package = None;
     }
