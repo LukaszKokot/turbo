@@ -91,14 +91,8 @@ type ParsedArgsFromRust struct {
 	Command            Command `json:"command"`
 }
 
-type TaskId struct {
-	Pkg  string `json:"package"`
-	Task string `json:"task"`
-}
-
-type PackageFileHashes struct {
-	PackageInputsHashes         map[TaskId]string            `json:"package_inputs_hashes"`
-	PackageInputsExpandedHashes map[TaskId]map[string]string `json:"package_inputs_expanded_hashes"`
+type TaskHashTracker struct {
+	PackageTaskHashes map[string]string `json:"package_task_hashes"`
 }
 
 // ExecutionState is the entire state of a turbo execution that is passed from the Rust shim.
@@ -108,6 +102,7 @@ type ExecutionState struct {
 	PackageManager        string             `json:"package_manager"`
 	CLIArgs               ParsedArgsFromRust `json:"cli_args"`
 	GlobalHash            *string            `json:"global_hash"`
+	TaskHashTracker       *TaskHashTracker   `json:"task_hash_tracker"`
 }
 
 // APIClientConfig holds the authentication and endpoint details for the API client

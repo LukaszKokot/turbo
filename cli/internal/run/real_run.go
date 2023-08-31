@@ -4,10 +4,12 @@ import (
 	"bytes"
 	gocontext "context"
 	"fmt"
+	"github.com/vercel/turbo/cli/internal/turbostate"
 	"io"
 	"log"
 	"os"
 	"os/exec"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -136,6 +138,7 @@ func RealRun(
 	runSummary runsummary.Meta,
 	packageManager *packagemanager.PackageManager,
 	processes *process.Manager,
+	executionState *turbostate.ExecutionState,
 ) error {
 	singlePackage := rs.Opts.runOpts.SinglePackage
 
@@ -277,6 +280,15 @@ func RealRun(
 	if isGrouped {
 		close(logChan)
 		logWaitGroup.Wait()
+	}
+
+	if executionState.TaskHashTracker != nil {
+		expectedTaskHashes := taskHashTracker.GetTaskHashes()
+		if !reflect.DeepEqual(executionState.TaskHashTracker.PackageTaskHashes, expectedTaskHashes) {
+			return fmt.Errorf("task hashes differ between Rust and Go: rust %v go %v", executionState.TaskHashTracker.PackageTaskHashes, expectedTaskHashes)
+		} else {
+			fmt.Println("task hashes are identical between Rust and Go!")
+		}
 	}
 
 	// Track if we saw any child with a non-zero exit code

@@ -3,12 +3,13 @@ use tracing::trace;
 
 use crate::{
     cli::Args, commands::CommandBase, package_json::PackageJson, package_manager::PackageManager,
-    run::Run,
+    run::Run, task_hash::TaskHashTracker,
 };
 
 #[derive(Debug, Serialize)]
 pub struct ExecutionState<'a> {
     global_hash: Option<String>,
+    task_hash_tracker: Option<TaskHashTracker>,
     pub api_client_config: APIClientConfig<'a>,
     pub spaces_api_client_config: SpacesAPIClientConfig<'a>,
     package_manager: PackageManager,
@@ -41,22 +42,21 @@ pub struct SpacesAPIClientConfig<'a> {
 
 impl<'a> TryFrom<&'a CommandBase> for ExecutionState<'a> {
     type Error = anyhow::Error;
-
     fn try_from(base: &'a CommandBase) -> Result<Self, Self::Error> {
         let run = Run::new((*base).clone());
 
         let global_hash;
-        let package_inputs_hashes;
+        let task_hash_tracker;
         #[cfg(debug_assertions)]
         {
-            let result = run.get_global_hash()?;
+            let result = run.get_hashes()?;
             global_hash = Some(result.0);
-            package_inputs_hashes = Some(result.1);
+            task_hash_tracker = Some(result.1);
         }
         #[cfg(not(debug_assertions))]
         {
             global_hash = None;
-            package_inputs_hashes = None;
+            task_hash_tracker = None;
         }
 
         let root_package_json =
@@ -91,6 +91,7 @@ impl<'a> TryFrom<&'a CommandBase> for ExecutionState<'a> {
 
         Ok(ExecutionState {
             global_hash,
+            task_hash_tracker,
             api_client_config,
             spaces_api_client_config,
             package_manager,

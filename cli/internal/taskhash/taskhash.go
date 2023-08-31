@@ -397,6 +397,12 @@ func (th *Tracker) SetExpandedOutputs(taskID string, outputs []turbopath.Anchore
 	th.packageTaskOutputs[taskID] = outputs
 }
 
+func (th *Tracker) GetTaskHashes() map[string]string {
+	th.mu.RLock()
+	defer th.mu.RUnlock()
+	return th.packageTaskHashes
+}
+
 // SetCacheStatus records the task status for the given taskID
 func (th *Tracker) SetCacheStatus(taskID string, cacheSummary runsummary.TaskCacheSummary) {
 	th.mu.Lock()

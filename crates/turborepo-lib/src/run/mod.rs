@@ -269,22 +269,10 @@ impl<'a> Run<'a> {
 
         visitor.visit(engine.clone()).await?;
 
-        let tasks: Vec<_> = engine.tasks().collect();
-        let workspaces = pkg_dep_graph.workspaces().collect();
-
-        let package_file_hashes = PackageInputsHashes::calculate_file_hashes(
-            scm,
-            engine.tasks(),
-            workspaces,
-            engine.task_definitions(),
-            &self.base.repo_root,
-        )?;
-
-        debug!("package file hashes: {:?}", package_file_hashes);
-
         Ok(())
     }
 
+    #[tokio::main]
     pub async fn get_hashes(&self) -> Result<(String, TaskHashTracker)> {
         let env_at_execution_start = EnvironmentVariableMap::infer();
 
