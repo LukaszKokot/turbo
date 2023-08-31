@@ -378,8 +378,6 @@ func HashMessage(msg *capnp.Message) (string, error) {
 		return "", err
 	}
 
-	println(hex.EncodeToString(bytes))
-
 	digest := xxhash.New()
 	_, err = digest.Write(bytes)
 	if err != nil {

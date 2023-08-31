@@ -286,8 +286,6 @@ func RealRun(
 		expectedTaskHashes := taskHashTracker.GetTaskHashes()
 		if !reflect.DeepEqual(executionState.TaskHashTracker.PackageTaskHashes, expectedTaskHashes) {
 			return fmt.Errorf("task hashes differ between Rust and Go: rust %v go %v", executionState.TaskHashTracker.PackageTaskHashes, expectedTaskHashes)
-		} else {
-			fmt.Println("task hashes are identical between Rust and Go!")
 		}
 	}
 

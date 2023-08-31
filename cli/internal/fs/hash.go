@@ -32,6 +32,7 @@ func HashFileHashes(hashes FileHashes) (string, error) {
 
 // HashTask produces the hash for a particular task
 func HashTask(task *hash.TaskHashable) (string, error) {
+	fmt.Printf("%+v\n", task)
 	return hash.HashTaskHashable(task)
 }
 

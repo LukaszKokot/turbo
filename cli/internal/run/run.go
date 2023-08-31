@@ -167,6 +167,7 @@ func (r *run) run(ctx gocontext.Context, targets []string, executionState *turbo
 	} else {
 		pkgDepGraph, err = context.BuildPackageGraph(r.base.RepoRoot, rootPackageJSON, executionState.PackageManager)
 	}
+
 	if err != nil {
 		var warnings *context.Warnings
 		if errors.As(err, &warnings) {
