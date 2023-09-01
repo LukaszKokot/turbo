@@ -1,4 +1,4 @@
-use std::hash::Hasher;
+use std::{fs, hash::Hasher};
 
 use capnp::message::{Allocator, Builder};
 
@@ -30,6 +30,8 @@ where
         );
 
         let buf = message.get_segments_for_output()[0];
+
+        // fs::write(".turbo/rust-hash", buf).unwrap();
 
         let mut hasher = twox_hash::XxHash64::with_seed(0);
         hasher.write(buf);

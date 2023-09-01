@@ -293,7 +293,6 @@ func (th *Tracker) CalculateTaskHash(logger hclog.Logger, packageTask *nodes.Pac
 			if err != nil {
 				return "", err
 			}
-
 			explicitEnvVarMap.Union(allEnvVarMap)
 		}
 	} else {
@@ -397,6 +396,7 @@ func (th *Tracker) SetExpandedOutputs(taskID string, outputs []turbopath.Anchore
 	th.packageTaskOutputs[taskID] = outputs
 }
 
+// GetTaskHashes gets the package task hashes
 func (th *Tracker) GetTaskHashes() map[string]string {
 	th.mu.RLock()
 	defer th.mu.RUnlock()

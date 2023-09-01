@@ -28,7 +28,7 @@ func Test_CapnpHash(t *testing.T) {
 		Env:             []string{"env"},
 		ResolvedEnvVars: env.EnvironmentVariablePairs{},
 		PassThroughEnv:  []string{"pass_thru_env"},
-		EnvMode:         util.Infer,
+		EnvMode:         util.Loose,
 		DotEnv:          []turbopath.AnchoredUnixPath{"dotenv"},
 	}
 

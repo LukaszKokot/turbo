@@ -43,7 +43,7 @@ pub struct SpacesAPIClientConfig<'a> {
 impl<'a> TryFrom<&'a CommandBase> for ExecutionState<'a> {
     type Error = anyhow::Error;
     fn try_from(base: &'a CommandBase) -> Result<Self, Self::Error> {
-        let run = Run::new((*base).clone());
+        let run = Run::new(base);
 
         let global_hash;
         let task_hash_tracker;

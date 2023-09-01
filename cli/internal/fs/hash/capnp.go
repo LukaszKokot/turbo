@@ -1,4 +1,4 @@
-// capnp.go contains the capnp schema and hashing functions for the turbo cache
+// Package hash contains the capnp schema and hashing functions for the turbo cache
 //
 // it depends on the generated capnp schema in ./capnp. to regenerate the schema,
 // you need the capnp binary as well as capnpc-go available in your path. then run:
@@ -6,7 +6,6 @@
 // capnp compile -I std -ogo proto.capnp
 //
 // in crates/turborepo-lib/src/hash or run `make turbo-capnp` in the `cli` directory.
-
 package hash
 
 import (
@@ -26,17 +25,19 @@ import (
 type TaskHashable struct {
 	GlobalHash           string
 	TaskDependencyHashes []string
-	PackageDir           turbopath.AnchoredUnixPath
 	HashOfFiles          string
 	ExternalDepsHash     string
-	Task                 string
-	Outputs              TaskOutputs
-	PassThruArgs         []string
-	Env                  []string
-	ResolvedEnvVars      env.EnvironmentVariablePairs
-	PassThroughEnv       []string
-	EnvMode              util.EnvMode
-	DotEnv               turbopath.AnchoredUnixPathArray
+
+	PackageDir   turbopath.AnchoredUnixPath
+	Task         string
+	Outputs      TaskOutputs
+	PassThruArgs []string
+
+	Env             []string
+	ResolvedEnvVars env.EnvironmentVariablePairs
+	PassThroughEnv  []string
+	EnvMode         util.EnvMode
+	DotEnv          turbopath.AnchoredUnixPathArray
 }
 
 // GlobalHashable is a hashable representation of global dependencies for tasks
@@ -126,7 +127,7 @@ func HashTaskHashable(task *TaskHashable) (string, error) {
 		var envMode turbo_capnp.TaskHashable_EnvMode
 		switch task.EnvMode {
 		case util.Infer:
-			envMode = turbo_capnp.TaskHashable_EnvMode_infer
+			panic("task inferred status should have already been resolved")
 		case util.Loose:
 			envMode = turbo_capnp.TaskHashable_EnvMode_loose
 		case util.Strict:
@@ -147,12 +148,15 @@ func HashTaskHashable(task *TaskHashable) (string, error) {
 			return "", err
 		}
 
-		assignList(task.Outputs.Exclusions, deps.SetExclusions, seg)
+		err = assignList(task.Outputs.Exclusions, deps.SetExclusions, seg)
 		if err != nil {
 			return "", err
 		}
 
-		taskMsg.SetOutputs(deps)
+		err = taskMsg.SetOutputs(deps)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	err = assignList(task.TaskDependencyHashes, taskMsg.SetTaskDependencyHashes, seg)
@@ -192,17 +196,16 @@ func HashTaskHashable(task *TaskHashable) (string, error) {
 //
 // NOTE: This function is _explicitly_ ordered and should not be sorted.
 //
-//		Order is important for the hash, and is as follows:
-//		- GlobalCacheKey
-//		- GlobalFileHashMap
-//		- RootExternalDepsHash
-//    - Env
-//    - ResolvedEnvVars
-//    - PassThroughEnv
-//    - EnvMode
-//    - FrameworkInference
-//    - DotEnv
-
+//			Order is important for the hash, and is as follows:
+//			- GlobalCacheKey
+//			- GlobalFileHashMap
+//			- RootExternalDepsHash
+//	   - Env
+//	   - ResolvedEnvVars
+//	   - PassThroughEnv
+//	   - EnvMode
+//	   - FrameworkInference
+//	   - DotEnv
 func HashGlobalHashable(global *GlobalHashable) (string, error) {
 	arena := capnp.SingleSegment(nil)
 
@@ -291,6 +294,7 @@ func HashGlobalHashable(global *GlobalHashable) (string, error) {
 	return HashMessage(globalMsg.Message())
 }
 
+// HashLockfilePackages hashes lockfile packages
 func HashLockfilePackages(packages []lockfile.Package) (string, error) {
 	arena := capnp.SingleSegment(nil)
 
@@ -305,6 +309,9 @@ func HashLockfilePackages(packages []lockfile.Package) (string, error) {
 	}
 
 	entries, err := globalMsg.NewPackages(int32(len(packages)))
+	if err != nil {
+		return "", err
+	}
 	for i, pkg := range packages {
 		entry := entries.At(i)
 
@@ -324,6 +331,7 @@ func HashLockfilePackages(packages []lockfile.Package) (string, error) {
 	return HashMessage(globalMsg.Message())
 }
 
+// HashFileHashes hashes files
 func HashFileHashes(fileHashes map[turbopath.AnchoredUnixPath]string) (string, error) {
 	arena := capnp.SingleSegment(nil)
 
@@ -378,6 +386,8 @@ func HashMessage(msg *capnp.Message) (string, error) {
 		return "", err
 	}
 
+	// _ = turbopath.AbsoluteSystemPath(".turbo/go-hash").WriteFile(bytes, 0644)
+
 	digest := xxhash.New()
 	_, err = digest.Write(bytes)
 	if err != nil {
@@ -425,7 +435,10 @@ func assignList(list []string, fn func(capnp.TextList) error, seg *capnp.Segment
 		return err
 	}
 	for i, v := range list {
-		textList.Set(i, v)
+		err = textList.Set(i, v)
+		if err != nil {
+			return err
+		}
 	}
 	return fn(textList)
 }
@@ -436,7 +449,10 @@ func assignAnchoredUnixArray(paths turbopath.AnchoredUnixPathArray, fn func(capn
 		return err
 	}
 	for i, v := range paths {
-		textList.Set(i, v.ToString())
+		err = textList.Set(i, v.ToString())
+		if err != nil {
+			return err
+		}
 	}
 	return fn(textList)
 }

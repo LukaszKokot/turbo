@@ -34,7 +34,7 @@ use crate::{
     process::ProcessManager,
     run::global_hash::get_global_hash_inputs,
     task_graph::Visitor,
-    task_hash::PackageInputsHashes,
+    task_hash::{PackageInputsHashes, TaskHashTracker},
 };
 
 #[derive(Debug)]
@@ -286,6 +286,7 @@ impl<'a> Run<'a> {
 
         let pkg_dep_graph = PackageGraph::builder(&self.base.repo_root, root_package_json.clone())
             .with_single_package_mode(opts.run_opts.single_package)
+            .with_quiet()
             .build()?;
 
         let root_turbo_json =
@@ -296,6 +297,7 @@ impl<'a> Run<'a> {
             .expect("must have root workspace");
 
         let global_hash_inputs = get_global_hash_inputs(
+            !opts.run_opts.single_package,
             root_workspace,
             &self.base.repo_root,
             pkg_dep_graph.package_manager(),
@@ -303,7 +305,7 @@ impl<'a> Run<'a> {
             &root_turbo_json.global_deps,
             &env_at_execution_start,
             &root_turbo_json.global_env,
-            &root_turbo_json.global_pass_through_env,
+            root_turbo_json.global_pass_through_env.as_deref(),
             opts.run_opts.env_mode,
             opts.run_opts.framework_inference,
             &root_turbo_json.global_dot_env,
@@ -315,6 +317,18 @@ impl<'a> Run<'a> {
             scope::resolve_packages(&opts.scope_opts, &self.base.repo_root, &pkg_dep_graph, &scm)?;
 
         let global_hash = global_hash_inputs.calculate_global_hash_from_inputs();
+
+        let repo_config = self.base.repo_config()?;
+        let team_id = repo_config.team_id();
+        let team_slug = repo_config.team_slug();
+
+        let token = self.base.user_config()?.token();
+
+        let api_auth = team_id.zip(token).map(|(team_id, token)| APIAuth {
+            team_id: team_id.to_string(),
+            token: token.to_string(),
+            team_slug: team_slug.map(|s| s.to_string()),
+        });
 
         let engine = EngineBuilder::new(
             &self.base.repo_root,
@@ -339,14 +353,14 @@ impl<'a> Run<'a> {
 
         let mut global_env_mode = opts.run_opts.env_mode;
         if matches!(global_env_mode, EnvMode::Infer)
-            && !root_turbo_json.global_pass_through_env.is_empty()
+            && root_turbo_json.global_pass_through_env.is_some()
         {
             global_env_mode = EnvMode::Strict;
         }
 
         let package_inputs_hashes = PackageInputsHashes::calculate_file_hashes(
             scm,
-            engine.tasks(),
+            engine.tasks().par_bridge(),
             pkg_dep_graph.workspaces().collect(),
             engine.task_definitions(),
             &self.base.repo_root,
@@ -354,14 +368,36 @@ impl<'a> Run<'a> {
 
         let pkg_dep_graph = Arc::new(pkg_dep_graph);
         let engine = Arc::new(engine);
+
+        let async_cache = AsyncCache::new(
+            &opts.cache_opts,
+            &self.base.repo_root,
+            self.base.api_client()?,
+            api_auth,
+        )?;
+
+        let color_selector = ColorSelector::default();
+
+        let runcache = Arc::new(RunCache::new(
+            async_cache,
+            &self.base.repo_root,
+            &opts.runcache_opts,
+            color_selector,
+            None,
+            self.base.ui,
+        ));
+
         let visitor = Visitor::new(
             pkg_dep_graph.clone(),
+            runcache,
             &opts,
             package_inputs_hashes,
             &env_at_execution_start,
             &global_hash,
             global_env_mode,
-        );
+            self.base.ui,
+        )
+        .silent();
 
         visitor.visit(engine.clone()).await?;
         let task_hash_tracker = visitor.into_task_hash_tracker();

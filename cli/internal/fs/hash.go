@@ -32,12 +32,15 @@ func HashFileHashes(hashes FileHashes) (string, error) {
 
 // HashTask produces the hash for a particular task
 func HashTask(task *hash.TaskHashable) (string, error) {
-	fmt.Printf("%+v\n", task)
+	// s, _ := json.MarshalIndent(task, "", "  ")
+	// fmt.Printf("HashTask: %s\n", s)
 	return hash.HashTaskHashable(task)
 }
 
 // HashGlobal produces the global hash value to be incorporated in every task hash
 func HashGlobal(global hash.GlobalHashable) (string, error) {
+	// s, _ := json.MarshalIndent(global, "", "  ")
+	// fmt.Printf("HashGlobal: %s\n", s)
 	return hash.HashGlobalHashable(&global)
 }
 

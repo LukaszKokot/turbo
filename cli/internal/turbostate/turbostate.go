@@ -91,6 +91,7 @@ type ParsedArgsFromRust struct {
 	Command            Command `json:"command"`
 }
 
+// TaskHashTracker stores the hashes calculated in Rust
 type TaskHashTracker struct {
 	PackageTaskHashes map[string]string `json:"package_task_hashes"`
 }
