@@ -20,6 +20,7 @@ pub use crate::error::{Error, Result};
 
 mod error;
 mod retry;
+mod spaces;
 
 lazy_static! {
     static ref AUTHORIZATION_REGEX: Regex =
@@ -31,6 +32,12 @@ pub struct APIClient {
     base_url: String,
     user_agent: String,
     use_preflight: bool,
+}
+
+pub struct APIAuth {
+    pub team_id: String,
+    pub token: String,
+    pub team_slug: Option<String>,
 }
 
 impl APIClient {
