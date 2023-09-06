@@ -3,6 +3,7 @@ use std::fmt;
 use chrono::{DateTime, Duration, Local};
 use serde::{ser::SerializeStruct, Serialize};
 use tokio::sync::mpsc;
+use turbopath::{AbsoluteSystemPath, AnchoredSystemPath, RelativeUnixPath};
 
 use crate::run::task_id::TaskId;
 
@@ -13,12 +14,15 @@ type Message = Event;
 // Should *not* be exposed outside of run summary module
 /// The execution summary
 #[derive(Debug, Serialize)]
-pub struct ExecutionSummary {
+pub struct ExecutionSummary<'a> {
     // this thread handles the state management
     #[serde(skip)]
     state_thread: tokio::task::JoinHandle<SummaryState>,
     #[serde(skip)]
     sender: mpsc::Sender<Message>,
+    command: String,
+    package_inference_path: &'a AnchoredSystemPath,
+    started_at: DateTime<Local>,
 }
 
 /// The final states of all task executions
@@ -100,8 +104,12 @@ impl TaskExecutionSummary {
     }
 }
 
-impl ExecutionSummary {
-    pub fn new() -> Self {
+impl<'a> ExecutionSummary<'a> {
+    pub fn new(
+        command: String,
+        package_inference_path: &'a AnchoredSystemPath,
+        started_at: DateTime<Local>,
+    ) -> Self {
         // This buffer size is probably overkill, but since messages are only a byte
         // it's worth the extra memory to avoid the channel filling up.
         let (sender, mut receiver) = mpsc::channel(128);
@@ -112,9 +120,13 @@ impl ExecutionSummary {
             }
             state
         });
+
         Self {
             state_thread,
             sender,
+            command,
+            package_inference_path,
+            started_at,
         }
     }
 
@@ -131,6 +143,7 @@ impl ExecutionSummary {
         let Self {
             state_thread,
             sender,
+            ..
         } = self;
         // We drop the sender so the channel closes once all trackers have finished.
         // We don't explicitly close as that would cause running trackers to be unable

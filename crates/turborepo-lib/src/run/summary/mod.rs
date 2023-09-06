@@ -5,6 +5,7 @@ mod scm;
 mod spaces;
 mod task;
 
+use chrono::Local;
 use global_hash::GlobalHashSummary;
 use serde::Serialize;
 use svix_ksuid::{Ksuid, KsuidLike};
@@ -13,6 +14,7 @@ use turbopath::{AbsoluteSystemPath, AbsoluteSystemPathBuf, AnchoredSystemPath};
 use turborepo_api_client::APIClient;
 use turborepo_ci::Vendor;
 use turborepo_env::EnvironmentVariableMap;
+use turborepo_ui::UI;
 
 use crate::{
     cli::EnvMode,
@@ -79,11 +81,10 @@ struct RunSummary<'a> {
 
 impl<'a> Meta<'a> {
     pub fn new_run_summary(
-        start_at: chrono::NaiveDateTime,
+        start_at: chrono::DateTime<Local>,
         repo_root: &'a AbsoluteSystemPath,
         package_inference_root: &AnchoredSystemPath,
         turbo_version: &'static str,
-        api_client: APIClient,
         run_opts: RunOpts,
         packages: &[String],
         global_env_mode: EnvMode,
@@ -106,7 +107,11 @@ impl<'a> Meta<'a> {
             RunType::Real
         };
 
-        let execution_summary = ExecutionSummary::new();
+        let execution_summary = ExecutionSummary::new(
+            synthesized_command.clone(),
+            package_inference_root,
+            start_at,
+        );
 
         Meta {
             run_summary: RunSummary {
@@ -130,6 +135,27 @@ impl<'a> Meta<'a> {
 
             synthesized_command,
         }
+    }
+
+    fn close(&mut self, exit_code: u32, ui: UI) {
+        if matches!(self.run_type, RunType::DryJson | RunType::DryText) {
+            self.close_dry_run()
+        }
+    }
+
+    fn close_dry_run(&mut self) -> Result<(), Error> {
+        if matches!(self.run_type, RunType::DryJson) {
+            let rendered = self.format_json();
+
+            println!("{}", rendered);
+            return Ok(());
+        }
+
+        self.format_and_print_text()
+    }
+
+    fn format_and_print_text(&mut self) -> Result<(), Error> {
+        self.normalize();
     }
 
     fn normalize(&mut self) {
