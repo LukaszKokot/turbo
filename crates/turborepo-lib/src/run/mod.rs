@@ -12,7 +12,7 @@ use std::{
 
 use anyhow::{anyhow, Context as ErrorContext, Result};
 pub use cache::{RunCache, TaskCache};
-use chrono::{DateTime, Local};
+use chrono::Local;
 use itertools::Itertools;
 use rayon::iter::ParallelBridge;
 use tracing::{debug, info};
@@ -36,7 +36,7 @@ use crate::{
     process::ProcessManager,
     run::{
         global_hash::get_global_hash_inputs,
-        summary::{GlobalHashSummary, Meta},
+        summary::{GlobalHashSummary, RunSummary},
     },
     task_graph::Visitor,
     task_hash::PackageInputsHashes,
@@ -166,7 +166,7 @@ impl Run {
                 .collect(),
         ))
         .with_tasks_only(opts.run_opts.only)
-        .with_workspaces(filtered_pkgs.iter().collect())
+        .with_workspaces(filtered_pkgs.iter().map(|name| name.clone()).collect())
         .with_tasks(
             opts.run_opts
                 .tasks
@@ -276,8 +276,6 @@ impl Run {
 
         visitor.visit(engine.clone()).await?;
 
-        println!("done");
-
         let resolved_pass_through_env_vars =
             env_at_execution_start.from_wildcards(&global_hash_inputs.pass_through_env)?;
 
@@ -292,7 +290,7 @@ impl Run {
             resolved_pass_through_env_vars,
         );
 
-        let mut run_summary = Meta::new_run_summary(
+        let mut run_summary = RunSummary::new(
             start_at,
             &self.base.repo_root,
             opts.scope_opts.pkg_inference_root.as_deref(),
