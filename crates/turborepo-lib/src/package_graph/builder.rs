@@ -163,6 +163,7 @@ impl<'a> BuildState<'a, ResolvedPackageManager> {
             WorkspaceName::Root,
             WorkspaceInfo {
                 package_json: root_package_json,
+                package_json_path: AnchoredSystemPathBuf::from_raw("package.json")?,
                 ..Default::default()
             },
         );

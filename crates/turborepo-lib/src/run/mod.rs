@@ -304,8 +304,6 @@ impl Run {
             "todo".to_string(),
         );
 
-        println!("{:?}", run_summary);
-
         run_summary.close(0, &*pkg_dep_graph, self.base.ui)?;
 
         Ok(())
