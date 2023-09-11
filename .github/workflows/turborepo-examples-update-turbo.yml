@@ -1,0 +1,21 @@
+name: Update Turbo in examples
+on:
+  push:
+    branches: [main]
+    paths:
+      - "version.txt"
+
+permissions:
+  actions: write
+  contents: read
+  pull-requests: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: ./.github/actions/setup-node
+        with:
+          package-install: false
+      - run: node ./scripts/bump-turbo.mjs
