@@ -47,7 +47,7 @@ pub async fn listen_socket(
     // this will fail if the pid is already owned
     // todo: make sure we fall back and handle this
     lock.acquire()?;
-    std::fs::remove_file(&sock_path).ok();
+    sock_path.remove_file().ok();
 
     debug!("pidlock acquired at {}", pid_path);
     debug!("listening on socket at {}", sock_path);

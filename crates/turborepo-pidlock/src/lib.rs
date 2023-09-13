@@ -171,9 +171,14 @@ impl Pidlock {
             Ok(pid) if process_exists(pid) => {
                 Some(pid.try_into().expect("if a pid exists it is a valid u32"))
             }
-            Ok(_) => {
+            Ok(pid) => {
                 warn!("stale pid file at {:?}", self.path);
-                None
+                if let Err(e) = fs::remove_file(&self.path) {
+                    warn!("failed to remove stale pid file: {}", e);
+                    Some(pid.try_into().expect("if a pid exists it is a valid u32"))
+                } else {
+                    None
+                }
             }
             Err(_) => {
                 warn!("nonnumeric pid file at {:?}", self.path);
@@ -313,8 +318,9 @@ mod tests {
 
         drop(file);
 
+        // expect a stale pid file to be cleaned up
         let mut pidfile = Pidlock::new(path.clone());
-        assert_eq!(pidfile.acquire(), Err(PidlockError::LockExists(path)));
+        assert!(pidfile.acquire().is_ok());
     }
 
     #[test]
