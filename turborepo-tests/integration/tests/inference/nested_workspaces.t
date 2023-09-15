@@ -185,7 +185,7 @@ Setup
   [1]
 
   $ cd $TARGET_DIR/outer-no-turbo/apps && ${TURBO} run build --filter=nothing -vv
-  [-0-9:.TWZ+]+ \[DEBUG] turborepo_lib::shim: Global turbo version: 1.10.14-canary.1 (re)
+  [-0-9:.TWZ+]+ \[DEBUG] turborepo_lib::shim: Global turbo version: .* (re)
   [-0-9:.TWZ+]+ \[DEBUG] turborepo_lib::shim: No local turbo binary found at: [\-\w\/\.]+ (re)
   [-0-9:.TWZ+]+ \[DEBUG] turborepo_lib::shim: No local turbo binary found at: [\-\w\/\.]+ (re)
   [-0-9:.TWZ+]+ \[DEBUG] turborepo_lib::shim: Repository Root: [\-\w\/\.]+ (re)
@@ -195,7 +195,7 @@ Setup
   [1]
 
   $ cd $TARGET_DIR/outer-no-turbo/inner && ${TURBO} run build --filter=nothing -vv
-  [-0-9:.TWZ+]+ \[DEBUG] turborepo_lib::shim: Global turbo version: 1.10.14-canary.1 (re)
+  [-0-9:.TWZ+]+ \[DEBUG] turborepo_lib::shim: Global turbo version: .* (re)
   [-0-9:.TWZ+]+ \[DEBUG] turborepo_lib::shim: No local turbo binary found at: [\-\w\/\.]+ (re)
   [-0-9:.TWZ+]+ \[DEBUG] turborepo_lib::shim: No local turbo binary found at: [\-\w\/\.]+ (re)
   [-0-9:.TWZ+]+ \[DEBUG] turborepo_lib::shim: Repository Root: [\-\w\/\.]+/inner (re)
@@ -223,7 +223,7 @@ Setup
     Time:\s*[\.0-9]+m?s  (re)
   
   $ cd $TARGET_DIR/outer-no-turbo/inner/apps && ${TURBO} run build --filter=nothing -vv
-  [-0-9:.TWZ+]+ \[DEBUG] turborepo_lib::shim: Global turbo version: 1.10.14-canary.1 (re)
+  [-0-9:.TWZ+]+ \[DEBUG] turborepo_lib::shim: Global turbo version: .* (re)
   [-0-9:.TWZ+]+ \[DEBUG] turborepo_lib::shim: No local turbo binary found at: [\-\w\/\.]+ (re)
   [-0-9:.TWZ+]+ \[DEBUG] turborepo_lib::shim: No local turbo binary found at: [\-\w\/\.]+ (re)
   [-0-9:.TWZ+]+ \[DEBUG] turborepo_lib::shim: Repository Root: [\-\w\/\.]+/inner (re)

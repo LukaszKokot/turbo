@@ -11,8 +11,8 @@ pub const ROOT_PKG_NAME: &str = "//";
 #[derive(Debug, Clone, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 #[serde(from = "String")]
 pub struct TaskId<'a> {
-    pub(crate) package: Cow<'a, str>,
-    pub(crate) task: Cow<'a, str>,
+    package: Cow<'a, str>,
+    task: Cow<'a, str>,
 }
 
 impl<'a> Serialize for TaskId<'a> {
