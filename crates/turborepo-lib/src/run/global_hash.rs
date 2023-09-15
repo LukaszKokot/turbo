@@ -1,7 +1,4 @@
-use std::{
-    collections::{BTreeMap, HashMap, HashSet},
-    fs,
-};
+use std::collections::{HashMap, HashSet};
 
 use anyhow::Result;
 use globwalk::WalkType;

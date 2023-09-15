@@ -1,4 +1,4 @@
-use std::{fs, hash::Hasher};
+use std::hash::Hasher;
 
 use capnp::message::{Allocator, Builder};
 

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 
 use itertools::{Either, Itertools};
 use tracing::debug;
