@@ -186,9 +186,7 @@ impl<'a> SCMChangeDetector<'a> {
             .anchor(lockfile_path)
             .map_err(|_| ChangeDetectError::LockfileNotInRepo)?;
 
-        let matcher = wax::Glob::new(lockfile_path_relative.as_str())?;
-
-        Ok(changed_files.iter().any(|f| matcher.is_match(f.as_path())))
+        Ok(changed_files.iter().any(|f| f == &lockfile_path_relative))
     }
 }
 
