@@ -169,6 +169,7 @@ func BuildPackageGraph(repoRoot turbopath.AbsoluteSystemPath, rootPackageJSON *f
 		TurboConfigs: map[string]*fs.TurboJSON{},
 	}
 	c.RootNode = core.ROOT_NODE_NAME
+
 	var warnings Warnings
 
 	packageManager, err := packagemanager.GetPackageManager(packageManagerName)
@@ -176,6 +177,7 @@ func BuildPackageGraph(repoRoot turbopath.AbsoluteSystemPath, rootPackageJSON *f
 		return nil, err
 	}
 	c.PackageManager = packageManager
+
 	if err := c.resolveWorkspaceRootDeps(rootPackageJSON, &warnings); err != nil {
 		// TODO(Gaspar) was this the intended return error?
 		return nil, fmt.Errorf("could not resolve workspaces: %w", err)
@@ -184,6 +186,7 @@ func BuildPackageGraph(repoRoot turbopath.AbsoluteSystemPath, rootPackageJSON *f
 	// Get the workspaces from the package manager.
 	// workspaces are absolute paths
 	workspaces, err := c.PackageManager.GetWorkspaces(repoRoot)
+
 	if err != nil {
 		return nil, fmt.Errorf("workspace configuration error: %w", err)
 	}
@@ -209,6 +212,7 @@ func BuildPackageGraph(repoRoot turbopath.AbsoluteSystemPath, rootPackageJSON *f
 			return c.populateWorkspaceGraphForPackageJSON(pkg, rootpath, pkg.Name, &warnings)
 		})
 	}
+
 	if err := populateGraphWaitGroup.Wait(); err != nil {
 		return nil, err
 	}
@@ -220,6 +224,7 @@ func BuildPackageGraph(repoRoot turbopath.AbsoluteSystemPath, rootPackageJSON *f
 		return nil, fmt.Errorf("failed to resolve dependencies for root package: %v", err)
 	}
 	c.WorkspaceInfos.PackageJSONs[util.RootPkgName] = rootPackageJSON
+
 	if err := c.populateExternalDeps(repoRoot, rootPackageJSON, &warnings); err != nil {
 		return nil, err
 	}
