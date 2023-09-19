@@ -32,6 +32,7 @@ pub struct GlobalHashSummary<'a> {
 }
 
 impl<'a> GlobalHashSummary<'a> {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         global_cache_key: &'static str,
         global_file_hash_map: HashMap<RelativeUnixPathBuf, String>,

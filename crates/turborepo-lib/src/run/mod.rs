@@ -166,7 +166,7 @@ impl Run {
                 .collect(),
         ))
         .with_tasks_only(opts.run_opts.only)
-        .with_workspaces(filtered_pkgs.iter().map(|name| name.clone()).collect())
+        .with_workspaces(filtered_pkgs.iter().cloned().collect())
         .with_tasks(
             opts.run_opts
                 .tasks
@@ -278,15 +278,15 @@ impl Run {
         visitor.visit(engine.clone()).await?;
 
         let resolved_pass_through_env_vars =
-            env_at_execution_start.from_wildcards(&global_hash_inputs.pass_through_env)?;
+            env_at_execution_start.from_wildcards(global_hash_inputs.pass_through_env)?;
 
         let global_hash_summary = GlobalHashSummary::new(
             global_hash_inputs.global_cache_key,
             global_hash_inputs.global_file_hash_map,
             &root_external_dependencies_hash,
-            &global_hash_inputs.env,
-            &global_hash_inputs.pass_through_env,
-            &global_hash_inputs.dot_env,
+            global_hash_inputs.env,
+            global_hash_inputs.pass_through_env,
+            global_hash_inputs.dot_env,
             global_hash_inputs.resolved_env_vars.unwrap_or_default(),
             resolved_pass_through_env_vars,
         );
@@ -303,7 +303,7 @@ impl Run {
             "todo".to_string(),
         );
 
-        run_summary.close(0, &*pkg_dep_graph, self.base.ui)?;
+        run_summary.close(0, &pkg_dep_graph, self.base.ui)?;
 
         Ok(())
     }

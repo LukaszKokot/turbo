@@ -41,7 +41,7 @@ pub struct GlobalHashableInputs<'a> {
 
 #[allow(clippy::too_many_arguments)]
 pub fn get_global_hash_inputs<'a, L: ?Sized + Lockfile>(
-    root_workspace: &WorkspaceInfo,
+    _root_workspace: &WorkspaceInfo,
     root_external_dependencies_hash: &'a str,
     root_path: &AbsoluteSystemPath,
     package_manager: &PackageManager,
@@ -140,17 +140,17 @@ impl<'a> GlobalHashableInputs<'a> {
         let global_hashable = GlobalHashable {
             global_cache_key: self.global_cache_key,
             global_file_hash_map: &self.global_file_hash_map,
-            root_external_dependencies_hash: &self.root_external_dependencies_hash,
-            env: &self.env,
+            root_external_dependencies_hash: self.root_external_dependencies_hash,
+            env: self.env,
             resolved_env_vars: self
                 .resolved_env_vars
                 .as_ref()
                 .map(|evm| evm.all.to_hashable())
                 .unwrap_or_default(),
-            pass_through_env: &self.pass_through_env,
+            pass_through_env: self.pass_through_env,
             env_mode: self.env_mode,
             framework_inference: self.framework_inference,
-            dot_env: &self.dot_env,
+            dot_env: self.dot_env,
         };
 
         global_hashable.hash()

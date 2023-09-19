@@ -297,8 +297,8 @@ impl From<GlobalHashable<'_>> for Builder<HeapAllocator> {
             // get a sorted iterator over keys and values of the hashmap
             // and set the entries in the capnp message
 
-            let mut hashable: Vec<_> = hashable.global_file_hash_map.into_iter().collect();
-            hashable.sort_by(|a, b| a.0.cmp(&b.0));
+            let mut hashable: Vec<_> = hashable.global_file_hash_map.iter().collect();
+            hashable.sort_by(|a, b| a.0.cmp(b.0));
 
             for (i, (key, value)) in hashable.iter().enumerate() {
                 let mut entry = entries.reborrow().get(i as u32);
@@ -307,7 +307,7 @@ impl From<GlobalHashable<'_>> for Builder<HeapAllocator> {
             }
         }
 
-        builder.set_root_external_deps_hash(&hashable.root_external_dependencies_hash);
+        builder.set_root_external_deps_hash(hashable.root_external_dependencies_hash);
 
         {
             let mut entries = builder.reborrow().init_env(hashable.env.len() as u32);

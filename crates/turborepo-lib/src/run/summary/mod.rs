@@ -88,6 +88,7 @@ pub struct RunSummaryInner<'a> {
 }
 
 impl<'a> RunSummary<'a> {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         start_at: chrono::DateTime<Local>,
         repo_root: &'a AbsoluteSystemPath,
@@ -144,7 +145,7 @@ impl<'a> RunSummary<'a> {
 
     pub fn close(
         &mut self,
-        exit_code: u32,
+        _exit_code: u32,
         pkg_dep_graph: &PackageGraph,
         ui: UI,
     ) -> Result<(), Error> {
@@ -178,7 +179,7 @@ impl<'a> RunSummary<'a> {
                     continue;
                 }
                 let dir = pkg_dep_graph
-                    .workspace_info(&pkg)
+                    .workspace_info(pkg)
                     .ok_or_else(|| Error::MissingWorkspace(pkg.clone()))?
                     .package_path();
 
