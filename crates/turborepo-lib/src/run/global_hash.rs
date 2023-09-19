@@ -29,7 +29,7 @@ enum GlobalHashError {}
 pub struct GlobalHashableInputs<'a> {
     pub global_cache_key: &'static str,
     pub global_file_hash_map: HashMap<RelativeUnixPathBuf, String>,
-    pub root_external_dependencies_hash: String,
+    pub root_external_dependencies_hash: &'a str,
     pub env: &'a [String],
     // Only Option to allow #[derive(Default)]
     pub resolved_env_vars: Option<DetailedMap>,

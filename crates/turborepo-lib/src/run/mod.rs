@@ -211,6 +211,7 @@ impl Run {
         let root_external_dependencies_hash = root_workspace.get_external_deps_hash();
 
         let mut global_hash_inputs = get_global_hash_inputs(
+            root_workspace,
             &root_external_dependencies_hash,
             &self.base.repo_root,
             pkg_dep_graph.package_manager(),
@@ -283,9 +284,9 @@ impl Run {
             global_hash_inputs.global_cache_key,
             global_hash_inputs.global_file_hash_map,
             &root_external_dependencies_hash,
-            global_hash_inputs.env,
-            global_hash_inputs.pass_through_env,
-            global_hash_inputs.dot_env,
+            &global_hash_inputs.env,
+            &global_hash_inputs.pass_through_env,
+            &global_hash_inputs.dot_env,
             global_hash_inputs.resolved_env_vars.unwrap_or_default(),
             resolved_pass_through_env_vars,
         );
